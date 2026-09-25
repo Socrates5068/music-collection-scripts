@@ -1,258 +1,112 @@
 ﻿# ============================================================
-# CONVERSOR RECURSIVO:
-# MP3 / WAV / FLAC / M4A → OPUS
+# convert_to_opus.ps1
 #
-# Características:
-# - Busca en todas las subcarpetas
+# Convierte archivos MP3, WAV, FLAC, M4A y OGG a OPUS de forma recursiva.
+#
+# Caracteristicas:
+# - Busca .mp3, .wav, .flac, .m4a y .ogg en la carpeta raiz y subcarpetas
+# - Guarda el .opus en la misma carpeta del archivo original
 # - Conserva metadatos
-# - Conserva UTF-8: á é í ó ú ñ ü
-# - Conserva carátulas
-# - Convierte carátulas APIC/attached_pic a
-#   METADATA_BLOCK_PICTURE
-# - Normaliza las portadas JPEG problemáticas
-# - Evita NativeCommandError de PowerShell
-# - Conserva fechas originales
-# - Si una fecha no está disponible, usa fecha/hora actual
-# - Salta archivos OPUS que ya existen
-# - Mantiene la estructura de carpetas
+# - Conserva correctamente UTF-8 (tildes, ñ, japones, etc.)
+# - Conserva caratulas embebidas
+# - Normaliza las caratulas a JPEG limpio
+# - Usa METADATA_BLOCK_PICTURE para el artwork
+# - Si el archivo de origen ya contiene Opus, copia el audio sin recodificar
+# - Conserva CreationTime y LastWriteTime
+# - Si una fecha no esta disponible, usa fecha/hora actual
+# - Si el OPUS ya existe y es valido, lo salta
+# - Si el OPUS existente no es valido, lo regenera
+# - No usa archivos temporales de audio
+# - Genera un log de errores
+#
+# Uso:
+#   .\convert_to_opus.ps1
+#
+# La carpeta actual es la raiz por defecto.
+#
+# Para otra carpeta, editar:
+#   $RootPath = "D:\Musica"
+#
+# Para cambiar bitrate:
+#   $Bitrate = "128k"
 # ============================================================
 
 $Bitrate = "128k"
-
-# ============================================================
-# CARPETA RAÍZ
-# ============================================================
-#
-# "." = carpeta donde se ejecuta el script
-#
-# Ejemplo:
-#
-# $RootPath = "D:\Musica"
-#
-# ============================================================
-
 $RootPath = "."
 
+$ErrorActionPreference = "Continue"
+
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
 # ============================================================
-# EJECUTAR FFmpeg / FFprobe SIN USAR 2>
-# ============================================================
-#
-# Esto evita que PowerShell convierta stderr de aplicaciones
-# nativas en NativeCommandError / RemoteException.
-#
+# EJECUTAR FFmpeg SIN GENERAR NativeCommandError FALSOS
 # ============================================================
 
-function Quote-WindowsArgument {
+function Invoke-FFmpeg {
     param (
-        [AllowEmptyString()]
-        [string]$Argument
-    )
-
-    if ($null -eq $Argument) {
-        return '""'
-    }
-
-    if ($Argument.Length -eq 0) {
-        return '""'
-    }
-
-    # Si no contiene espacios, tabs ni comillas,
-    # no necesita comillas.
-    if ($Argument -notmatch '[\s"]') {
-        return $Argument
-    }
-
-    $sb = New-Object System.Text.StringBuilder
-
-    [void]$sb.Append('"')
-
-    $backslashes = 0
-
-    foreach ($char in $Argument.ToCharArray()) {
-
-        if ($char -eq '\') {
-
-            $backslashes++
-
-            continue
-        }
-
-        if ($char -eq '"') {
-
-            # Los backslashes antes de una comilla
-            # deben duplicarse y agregar uno adicional.
-            for ($i = 0; $i -lt ($backslashes * 2 + 1); $i++) {
-                [void]$sb.Append('\')
-            }
-
-            [void]$sb.Append('"')
-
-            $backslashes = 0
-
-            continue
-        }
-
-        # Escribir backslashes acumulados
-        for ($i = 0; $i -lt $backslashes; $i++) {
-            [void]$sb.Append('\')
-        }
-
-        $backslashes = 0
-
-        [void]$sb.Append($char)
-    }
-
-    # Los backslashes al final deben duplicarse antes
-    # de la comilla final.
-    for ($i = 0; $i -lt ($backslashes * 2); $i++) {
-        [void]$sb.Append('\')
-    }
-
-    [void]$sb.Append('"')
-
-    return $sb.ToString()
-}
-
-
-function Invoke-NativeProcess {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$FileName,
-
         [Parameter(Mandatory = $true)]
         [string[]]$Arguments,
 
         [string[]]$IgnoreErrorPatterns = @()
     )
 
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $output = @(
+        & ffmpeg @Arguments 2>&1 |
+            ForEach-Object { $_.ToString() }
+    )
 
-    $psi.FileName = $FileName
+    $exitCode = $LASTEXITCODE
 
-    $psi.UseShellExecute = $false
-    $psi.CreateNoWindow = $true
+    $visibleOutput = @(
+        $output | Where-Object {
 
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
+            $line = $_
+            $ignore = $false
 
-    # ========================================================
-    # ArgumentList existe en versiones modernas de .NET.
-    #
-    # Si no existe, usamos Arguments y hacemos el escape
-    # manual compatible con Windows.
-    # ========================================================
-
-    $argumentListProperty =
-        $psi.PSObject.Properties["ArgumentList"]
-
-    if ($null -ne $argumentListProperty) {
-
-        foreach ($argument in $Arguments) {
-
-            [void]$psi.ArgumentList.Add(
-                [string]$argument
-            )
-        }
-    }
-    else {
-
-        $quotedArguments = @(
-            $Arguments | ForEach-Object {
-                Quote-WindowsArgument $_
-            }
-        )
-
-        $psi.Arguments =
-            $quotedArguments -join " "
-    }
-
-    $process = New-Object System.Diagnostics.Process
-
-    $process.StartInfo = $psi
-
-    try {
-
-        if (-not $process.Start()) {
-
-            throw "No se pudo iniciar $FileName"
-        }
-
-        # Leer ambos streams de forma asíncrona para evitar
-        # deadlocks si FFmpeg genera bastante salida.
-        $stdoutTask =
-            $process.StandardOutput.ReadToEndAsync()
-
-        $stderrTask =
-            $process.StandardError.ReadToEndAsync()
-
-        $process.WaitForExit()
-
-        $stdout =
-            $stdoutTask.Result
-
-        $stderr =
-            $stderrTask.Result
-
-        $exitCode =
-            $process.ExitCode
-
-        # ====================================================
-        # FILTRAR SOLO EL MENSAJE CONOCIDO DEL JPEG
-        # ====================================================
-
-        if ($IgnoreErrorPatterns.Count -gt 0) {
-
-            $stderrLines = @(
-                $stderr -split "`r?`n"
-            )
-
-            $visibleLines = @(
-                $stderrLines | Where-Object {
-
-                    $line = $_
-
-                    $ignore = $false
-
-                    foreach ($pattern in $IgnoreErrorPatterns) {
-
-                        if ($line -match $pattern) {
-
-                            $ignore = $true
-
-                            break
-                        }
-                    }
-
-                    -not $ignore
+            foreach ($pattern in $IgnoreErrorPatterns) {
+                if ($line -match $pattern) {
+                    $ignore = $true
+                    break
                 }
-            )
+            }
 
-            $stderr =
-                $visibleLines -join "`r`n"
+            -not $ignore
         }
+    )
 
-        # Mostrar cualquier error REAL.
-        if (-not [string]::IsNullOrWhiteSpace($stderr)) {
-
-            Write-Host `
-                $stderr.Trim() `
-                -ForegroundColor Red
-        }
-
-        return [PSCustomObject]@{
-            ExitCode = $exitCode
-            StdOut   = $stdout
-            StdErr   = $stderr
-        }
-    }
-    finally {
-
-        $process.Dispose()
+    return [PSCustomObject]@{
+        ExitCode  = $exitCode
+        Output    = $visibleOutput
+        AllOutput = $output
     }
 }
 
 # ============================================================
-# PATRÓN DE LA ADVERTENCIA JPEG QUE QUEREMOS IGNORAR
+# EJECUTAR FFprobe
+# ============================================================
+
+function Invoke-FFprobe {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $output = @(
+        & ffprobe @Arguments 2>&1 |
+            ForEach-Object { $_.ToString() }
+    )
+
+    $exitCode = $LASTEXITCODE
+
+    return [PSCustomObject]@{
+        ExitCode = $exitCode
+        Output   = $output
+        Text     = ($output -join "`r`n")
+    }
+}
+
+# ============================================================
+# ADVERTENCIA JPEG CONOCIDA
 # ============================================================
 
 $IgnoreMjpegWarning = @(
@@ -260,7 +114,7 @@ $IgnoreMjpegWarning = @(
 )
 
 # ============================================================
-# OBTENER INFORMACIÓN DE LA CARÁTULA
+# OBTENER INFORMACION DE LA CARATULA
 # ============================================================
 
 function Get-CoverInfo {
@@ -268,37 +122,30 @@ function Get-CoverInfo {
         [string]$FilePath
     )
 
-    $result = Invoke-NativeProcess `
-        -FileName "ffprobe.exe" `
-        -Arguments @(
-            "-v"
-            "error"
-            "-select_streams"
-            "v"
-            "-show_entries"
-            "stream=index,codec_name,width,height,pix_fmt:stream_disposition=attached_pic"
-            "-of"
-            "json"
-            $FilePath
-        ) `
-        -IgnoreErrorPatterns $IgnoreMjpegWarning
+    $result = Invoke-FFprobe -Arguments @(
+        "-v"
+        "error"
+        "-select_streams"
+        "v"
+        "-show_entries"
+        "stream=index,codec_name,width,height,pix_fmt:stream_disposition=attached_pic"
+        "-of"
+        "json"
+        $FilePath
+    )
 
     if ($result.ExitCode -ne 0) {
         return $null
     }
 
-    if ([string]::IsNullOrWhiteSpace($result.StdOut)) {
+    if ([string]::IsNullOrWhiteSpace($result.Text)) {
         return $null
     }
 
     try {
-
-        $data =
-            $result.StdOut |
-            ConvertFrom-Json
+        $data = $result.Text | ConvertFrom-Json
     }
     catch {
-
         return $null
     }
 
@@ -306,16 +153,9 @@ function Get-CoverInfo {
         return $null
     }
 
-    $streams = @(
-        $data.streams
-    )
-
-    # Buscar attached_pic
     $covers = @(
-        $streams | Where-Object {
-
-            $_.disposition -and
-            $_.disposition.attached_pic -eq 1
+        @($data.streams) | Where-Object {
+            $_.disposition -and $_.disposition.attached_pic -eq 1
         }
     )
 
@@ -323,41 +163,49 @@ function Get-CoverInfo {
         return $null
     }
 
-    # Preferir JPEG
-    $cover =
+    return (
         $covers |
         Sort-Object @{
             Expression = {
-
-                switch (
-                    $_.codec_name.ToLower()
-                ) {
-
-                    "mjpeg" {
-                        0
-                    }
-
-                    "jpeg" {
-                        0
-                    }
-
-                    "png" {
-                        1
-                    }
-
-                    "webp" {
-                        2
-                    }
-
-                    default {
-                        3
-                    }
+                switch ($_.codec_name.ToLower()) {
+                    "mjpeg" { 0 }
+                    "jpeg"  { 0 }
+                    "png"   { 1 }
+                    "webp"  { 2 }
+                    default { 3 }
                 }
             }
         } |
         Select-Object -First 1
+    )
+}
 
-    return $cover
+# ============================================================
+# OBTENER CODEC DE AUDIO
+# ============================================================
+
+function Get-AudioCodec {
+    param (
+        [string]$FilePath
+    )
+
+    $result = Invoke-FFprobe -Arguments @(
+        "-v"
+        "error"
+        "-select_streams"
+        "a:0"
+        "-show_entries"
+        "stream=codec_name"
+        "-of"
+        "default=nw=1:nk=1"
+        $FilePath
+    )
+
+    if ($result.ExitCode -ne 0) {
+        return $null
+    }
+
+    return $result.Text.Trim()
 }
 
 # ============================================================
@@ -370,23 +218,16 @@ function Write-UInt32BE {
         [UInt32]$Value
     )
 
-    $bytes =
-        [BitConverter]::GetBytes($Value)
+    $bytes = [BitConverter]::GetBytes($Value)
 
     if ([BitConverter]::IsLittleEndian) {
         [Array]::Reverse($bytes)
     }
 
-    $Stream.Write(
-        $bytes,
-        0,
-        4
-    )
+    $Stream.Write($bytes, 0, 4)
 }
 
-
 function New-MetadataBlockPicture {
-
     param (
         [string]$ImagePath,
         [string]$MimeType,
@@ -398,138 +239,177 @@ function New-MetadataBlockPicture {
     # 3 = Cover (front)
     $pictureType = [UInt32]3
 
-    $mimeBytes =
-        [System.Text.Encoding]::ASCII.GetBytes(
-            $MimeType
-        )
+    $mimeBytes = [System.Text.Encoding]::ASCII.GetBytes($MimeType)
+    $descriptionBytes = [byte[]]@()
+    $imageBytes = [System.IO.File]::ReadAllBytes($ImagePath)
 
-    $descriptionBytes =
-        [byte[]]@()
-
-    $imageBytes =
-        [System.IO.File]::ReadAllBytes(
-            $ImagePath
-        )
-
-    $memory =
-        New-Object System.IO.MemoryStream
+    $memory = New-Object System.IO.MemoryStream
 
     try {
+        Write-UInt32BE $memory $pictureType
 
-        # Picture type
-        Write-UInt32BE `
-            $memory `
-            $pictureType
-
-        # MIME length
-        Write-UInt32BE `
-            $memory `
-            ([UInt32]$mimeBytes.Length)
-
-        # MIME
+        Write-UInt32BE $memory ([UInt32]$mimeBytes.Length)
         if ($mimeBytes.Length -gt 0) {
-
-            $memory.Write(
-                $mimeBytes,
-                0,
-                $mimeBytes.Length
-            )
+            $memory.Write($mimeBytes, 0, $mimeBytes.Length)
         }
 
-        # Description length
-        Write-UInt32BE `
-            $memory `
-            ([UInt32]$descriptionBytes.Length)
-
-        # Description
+        Write-UInt32BE $memory ([UInt32]$descriptionBytes.Length)
         if ($descriptionBytes.Length -gt 0) {
-
-            $memory.Write(
-                $descriptionBytes,
-                0,
-                $descriptionBytes.Length
-            )
+            $memory.Write($descriptionBytes, 0, $descriptionBytes.Length)
         }
 
-        # Width
-        Write-UInt32BE `
-            $memory `
-            $Width
-
-        # Height
-        Write-UInt32BE `
-            $memory `
-            $Height
-
-        # Bits per pixel
-        Write-UInt32BE `
-            $memory `
-            $Depth
+        Write-UInt32BE $memory $Width
+        Write-UInt32BE $memory $Height
+        Write-UInt32BE $memory $Depth
 
         # Indexed colors
-        Write-UInt32BE `
-            $memory `
-            0
+        Write-UInt32BE $memory 0
 
         # Image size
-        Write-UInt32BE `
-            $memory `
-            ([UInt32]$imageBytes.Length)
+        Write-UInt32BE $memory ([UInt32]$imageBytes.Length)
 
-        # Image
         if ($imageBytes.Length -gt 0) {
-
-            $memory.Write(
-                $imageBytes,
-                0,
-                $imageBytes.Length
-            )
+            $memory.Write($imageBytes, 0, $imageBytes.Length)
         }
 
-        $rawBlock =
-            $memory.ToArray()
-
-        return [Convert]::ToBase64String(
-            $rawBlock
-        )
+        return [Convert]::ToBase64String($memory.ToArray())
     }
     finally {
-
         $memory.Dispose()
     }
 }
 
 # ============================================================
-# VERIFICAR FFMPEG
+# VALIDAR OPUS
 # ============================================================
 
-if (-not (
-    Get-Command `
-        ffmpeg.exe `
-        -ErrorAction SilentlyContinue
-)) {
+function Test-OpusFile {
+    param (
+        [string]$FilePath
+    )
 
-    Write-Host `
-        "❌ No se encontró ffmpeg.exe en el PATH." `
-        -ForegroundColor Red
+    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
+        return $false
+    }
 
-    exit 1
+    try {
+        $file = Get-Item -LiteralPath $FilePath -ErrorAction Stop
+
+        if ($file.Length -le 0) {
+            return $false
+        }
+    }
+    catch {
+        return $false
+    }
+
+    $result = Invoke-FFprobe -Arguments @(
+        "-v"
+        "error"
+        "-select_streams"
+        "a:0"
+        "-show_entries"
+        "stream=codec_name,duration"
+        "-of"
+        "json"
+        $FilePath
+    )
+
+    if ($result.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($result.Text)) {
+        return $false
+    }
+
+    try {
+        $data = $result.Text | ConvertFrom-Json
+    }
+    catch {
+        return $false
+    }
+
+    $streams = @($data.streams)
+
+    if ($streams.Count -eq 0) {
+        return $false
+    }
+
+    if ($streams[0].codec_name -ne "opus") {
+        return $false
+    }
+
+    if ([string]::IsNullOrWhiteSpace("$($streams[0].duration)")) {
+        return $false
+    }
+
+    if ("$($streams[0].duration)" -eq "N/A") {
+        return $false
+    }
+
+    try {
+        if ([double]$streams[0].duration -le 0) {
+            return $false
+        }
+    }
+    catch {
+        return $false
+    }
+
+    return $true
 }
 
 # ============================================================
-# VERIFICAR FFPROBE
+# VALIDAR CARATULA DEL OPUS
 # ============================================================
 
-if (-not (
-    Get-Command `
-        ffprobe.exe `
-        -ErrorAction SilentlyContinue
-)) {
+function Test-OpusCover {
+    param (
+        [string]$FilePath
+    )
 
-    Write-Host `
-        "❌ No se encontró ffprobe.exe en el PATH." `
-        -ForegroundColor Red
+    $result = Invoke-FFprobe -Arguments @(
+        "-v"
+        "error"
+        "-select_streams"
+        "v"
+        "-show_entries"
+        "stream=codec_name,width,height:stream_disposition=attached_pic"
+        "-of"
+        "json"
+        $FilePath
+    )
 
+    if ($result.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($result.Text)) {
+        return $false
+    }
+
+    try {
+        $data = $result.Text | ConvertFrom-Json
+    }
+    catch {
+        return $false
+    }
+
+    if (-not $data.streams) {
+        return $false
+    }
+
+    return @(
+        @($data.streams) | Where-Object {
+            $_.disposition -and $_.disposition.attached_pic -eq 1
+        }
+    ).Count -gt 0
+}
+
+# ============================================================
+# VERIFICAR FFMPEG / FFPROBE
+# ============================================================
+
+if (-not (Get-Command ffmpeg.exe -ErrorAction SilentlyContinue)) {
+    Write-Host "ERROR: no se encontro ffmpeg.exe." -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Get-Command ffprobe.exe -ErrorAction SilentlyContinue)) {
+    Write-Host "ERROR: no se encontro ffprobe.exe." -ForegroundColor Red
     exit 1
 }
 
@@ -537,63 +417,27 @@ if (-not (
 # VERIFICAR CARPETA
 # ============================================================
 
-if (-not (
-    Test-Path `
-        -LiteralPath $RootPath `
-        -PathType Container
-)) {
-
-    Write-Host `
-        "❌ La carpeta no existe: $RootPath" `
-        -ForegroundColor Red
-
+if (-not (Test-Path -LiteralPath $RootPath -PathType Container)) {
+    Write-Host "ERROR: la carpeta no existe: $RootPath" -ForegroundColor Red
     exit 1
 }
 
-$root =
-    (
-        Resolve-Path `
-            -LiteralPath $RootPath
-    ).Path
+$root = (Resolve-Path -LiteralPath $RootPath).Path
 
 # ============================================================
-# ENCABEZADO
+# LOG
 # ============================================================
 
-Write-Host ""
-Write-Host "==============================================" `
-    -ForegroundColor Cyan
+$logFile = Join-Path $root "convert_to_opus_errors.log"
 
-Write-Host `
-    "🎵 CONVERSOR RECURSIVO A OPUS" `
-    -ForegroundColor Cyan
-
-Write-Host "==============================================" `
-    -ForegroundColor Cyan
-
-Write-Host `
-    "📂 Carpeta raíz:" `
-    -ForegroundColor Yellow
-
-Write-Host `
-    "   $root" `
-    -ForegroundColor White
-
-Write-Host ""
-
-Write-Host `
-    "Formatos: MP3 / WAV / FLAC / M4A → OPUS" `
-    -ForegroundColor White
-
-Write-Host `
-    "Bitrate: $Bitrate" `
-    -ForegroundColor Yellow
-
-Write-Host "==============================================" `
-    -ForegroundColor Cyan
+[System.IO.File]::WriteAllText(
+    $logFile,
+    "",
+    $Utf8NoBom
+)
 
 # ============================================================
-# BUSCAR ARCHIVOS RECURSIVAMENTE
+# BUSCAR ARCHIVOS DE AUDIO RECURSIVAMENTE
 # ============================================================
 
 $files = @(
@@ -603,426 +447,265 @@ $files = @(
         -File `
         -ErrorAction SilentlyContinue |
         Where-Object {
-
-            $_.Extension -match `
-                '^\.(mp3|wav|flac|m4a)$'
+            $_.Extension -match '^\.(mp3|wav|flac|m4a|ogg)$'
         }
 )
 
-$totalFiles =
-    $files.Count
-
+$totalFiles = $files.Count
 $currentFile = 0
-$converted   = 0
-$skipped     = 0
-$errors      = 0
+$converted = 0
+$skipped = 0
+$errors = 0
 
 Write-Host ""
-
-Write-Host `
-    "🎵 Archivos encontrados: $totalFiles" `
-    -ForegroundColor Yellow
-
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host "CONVERSOR MP3/WAV/FLAC/M4A/OGG -> OPUS" -ForegroundColor Cyan
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host "Carpeta raiz: $root" -ForegroundColor White
+Write-Host "Archivos de audio: $totalFiles" -ForegroundColor Yellow
+Write-Host "Bitrate: $Bitrate" -ForegroundColor Yellow
+Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host ""
 
 # ============================================================
-# PROCESAR ARCHIVOS
+# PROCESAR
 # ============================================================
 
-$files | ForEach-Object {
+foreach ($inputFile in $files) {
 
     $currentFile++
 
-    $inputFile = $_
+    Write-Progress `
+        -Activity "Convirtiendo a OPUS" `
+        -Status "$currentFile / $totalFiles" `
+        -PercentComplete ([int](($currentFile / [math]::Max($totalFiles, 1)) * 100))
 
-    # --------------------------------------------------------
-    # OUTPUT EN LA MISMA CARPETA
-    # --------------------------------------------------------
-
-    $outputName =
-        Join-Path `
-            $inputFile.DirectoryName `
-            "$($inputFile.BaseName).opus"
+    $outputName = Join-Path `
+        $inputFile.DirectoryName `
+        "$($inputFile.BaseName).opus"
 
     Write-Host ""
-    Write-Host `
-        "[$currentFile/$totalFiles]" `
-        -ForegroundColor DarkGray
+    Write-Host "==============================================" -ForegroundColor DarkGray
+    Write-Host "[$currentFile/$totalFiles]" -ForegroundColor Cyan
+    Write-Host $inputFile.FullName -ForegroundColor White
+    Write-Host "==============================================" -ForegroundColor DarkGray
 
-    # --------------------------------------------------------
-    # SI YA EXISTE, SALTAR
-    # --------------------------------------------------------
+    # ========================================================
+    # SI YA EXISTE, VALIDAR ANTES DE SALTAR
+    # ========================================================
 
-    if (
-        Test-Path `
-            -LiteralPath $outputName
-    ) {
+    if (Test-Path -LiteralPath $outputName -PathType Leaf) {
 
-        Write-Host `
-            "⏭️ Saltando:" `
-            -ForegroundColor Gray
+        if (Test-OpusFile $outputName) {
 
-        Write-Host `
-            "   $($inputFile.FullName)" `
-            -ForegroundColor DarkGray
+            Write-Host "OPUS existente y valido. Saltando." -ForegroundColor Gray
+            $skipped++
+            continue
+        }
 
-        $skipped++
+        Write-Host "OPUS existente pero invalido. Se regenerara." -ForegroundColor Yellow
 
-        return
+        Remove-Item `
+            -LiteralPath $outputName `
+            -Force `
+            -ErrorAction SilentlyContinue
     }
 
     # ========================================================
-    # FECHAS ORIGINALES
+    # FECHAS
     # ========================================================
 
-    $fallbackDate =
-        Get-Date
+    $fallbackDate = Get-Date
 
     try {
-
-        $originalCreation =
-            $inputFile.CreationTime
-
+        $originalCreation = $inputFile.CreationTime
         if ($null -eq $originalCreation) {
-
             throw "CreationTime no disponible"
         }
     }
     catch {
-
-        $originalCreation =
-            $fallbackDate
-
-        Write-Host `
-            "⚠️ CreationTime no disponible. Se usará fecha/hora actual." `
-            -ForegroundColor Yellow
+        $originalCreation = $fallbackDate
+        Write-Host "CreationTime no disponible -> se usara fecha actual." -ForegroundColor Yellow
     }
 
     try {
-
-        $originalWrite =
-            $inputFile.LastWriteTime
-
+        $originalWrite = $inputFile.LastWriteTime
         if ($null -eq $originalWrite) {
-
             throw "LastWriteTime no disponible"
         }
     }
     catch {
-
-        $originalWrite =
-            $fallbackDate
-
-        Write-Host `
-            "⚠️ LastWriteTime no disponible. Se usará fecha/hora actual." `
-            -ForegroundColor Yellow
+        $originalWrite = $fallbackDate
+        Write-Host "LastWriteTime no disponible -> se usara fecha actual." -ForegroundColor Yellow
     }
 
     # ========================================================
-    # TEMPORALES
+    # TEMPORALES SOLO PARA METADATA Y CARATULA
     # ========================================================
 
-    $tempPrefix =
-        Join-Path `
-            $env:TEMP `
-            (
-                "opus_" +
-                [Guid]::NewGuid().ToString()
-            )
+    $tempId = [Guid]::NewGuid().ToString()
 
-    $metadataFile =
-        "$tempPrefix.ffmeta"
+    $tempMetadata = Join-Path `
+        $env:TEMP `
+        "ogg_$tempId.ffmeta"
 
-    $coverFile =
-        "$tempPrefix.jpg"
+    $tempCover = Join-Path `
+        $env:TEMP `
+        "ogg_$tempId.jpg"
 
-    $tempOutput =
-        "$tempPrefix.opus"
-
-    Write-Host `
-        "==============================================" `
-        -ForegroundColor DarkGray
-
-    Write-Host `
-        "🎵 Procesando:" `
-        -ForegroundColor Cyan
-
-    Write-Host `
-        "   $($inputFile.FullName)" `
-        -ForegroundColor White
-
-    Write-Host `
-        "==============================================" `
-        -ForegroundColor DarkGray
+    $conversionResult = $null
+    $hasCover = $false
 
     try {
 
         # ====================================================
-        # 1. EXTRAER METADATOS
+        # DETECTAR CODEC DE AUDIO
         # ====================================================
 
-        Write-Host `
-            "📋 Leyendo metadatos..." `
-            -ForegroundColor Yellow
+        $audioCodec = Get-AudioCodec $inputFile.FullName
 
-        $result =
-            Invoke-NativeProcess `
-                -FileName "ffmpeg.exe" `
-                -Arguments @(
-                    "-hide_banner"
-                    "-loglevel"
-                    "error"
-                    "-y"
-                    "-i"
-                    $inputFile.FullName
-                    "-map_metadata"
-                    "0"
-                    "-f"
-                    "ffmetadata"
-                    $metadataFile
-                ) `
-                -IgnoreErrorPatterns $IgnoreMjpegWarning
-
-        if (
-            $result.ExitCode -ne 0 -or
-            -not (
-                Test-Path `
-                    -LiteralPath $metadataFile
-            )
-        ) {
-
-            throw `
-                "No se pudieron extraer los metadatos."
+        if ([string]::IsNullOrWhiteSpace($audioCodec)) {
+            throw "No se pudo detectar el codec de audio."
         }
+
+        Write-Host "Codec de audio: $audioCodec" -ForegroundColor DarkGray
 
         # ====================================================
-        # 2. VERIFICAR STREAM DE AUDIO
+        # DETECTAR CARATULA
         # ====================================================
 
-        $audioResult =
-            Invoke-NativeProcess `
-                -FileName "ffprobe.exe" `
-                -Arguments @(
-                    "-v"
-                    "error"
-                    "-select_streams"
-                    "a"
-                    "-show_entries"
-                    "stream=index,codec_name"
-                    "-of"
-                    "json"
-                    $inputFile.FullName
-                ) `
-                -IgnoreErrorPatterns $IgnoreMjpegWarning
-
-        if (
-            $audioResult.ExitCode -ne 0 -or
-            [string]::IsNullOrWhiteSpace(
-                $audioResult.StdOut
-            )
-        ) {
-
-            throw `
-                "No se pudo detectar el stream de audio."
-        }
-
-        try {
-
-            $audioInfo =
-                $audioResult.StdOut |
-                ConvertFrom-Json
-        }
-        catch {
-
-            throw `
-                "No se pudo interpretar la información del audio."
-        }
-
-        $audioStreams = @(
-            $audioInfo.streams
-        )
-
-        if ($audioStreams.Count -eq 0) {
-
-            throw `
-                "El archivo no contiene un stream de audio válido."
-        }
-
-        # ====================================================
-        # 3. BUSCAR CARÁTULA
-        # ====================================================
-
-        $coverInfo =
-            Get-CoverInfo `
-                $inputFile.FullName
-
-        $hasCover =
-            $null -ne $coverInfo
+        $coverInfo = Get-CoverInfo $inputFile.FullName
+        $hasCover = $null -ne $coverInfo
 
         if ($hasCover) {
 
-            Write-Host `
-                "🖼️ Carátula encontrada" `
-                -ForegroundColor Yellow
-
-            Write-Host `
-                "   Codec : $($coverInfo.codec_name)" `
-                -ForegroundColor DarkYellow
-
-            Write-Host `
-                "   Size  : $($coverInfo.width)x$($coverInfo.height)" `
-                -ForegroundColor DarkYellow
+            Write-Host "Caratula encontrada." -ForegroundColor Yellow
+            Write-Host "  Codec: $($coverInfo.codec_name)" -ForegroundColor DarkYellow
+            Write-Host "  Tamano: $($coverInfo.width)x$($coverInfo.height)" -ForegroundColor DarkYellow
 
             # =================================================
-            # 4. NORMALIZAR CARÁTULA
+            # EXTRAER METADATOS COMO FFMETADATA UTF-8
             # =================================================
 
-            Write-Host `
-                "🧹 Normalizando carátula..." `
-                -ForegroundColor Yellow
+            Write-Host "Leyendo metadatos..." -ForegroundColor Yellow
 
-            $coverResult =
-                Invoke-NativeProcess `
-                    -FileName "ffmpeg.exe" `
-                    -Arguments @(
-                        "-hide_banner"
-                        "-loglevel"
-                        "error"
-                        "-y"
-                        "-i"
-                        $inputFile.FullName
-                        "-map"
-                        "0:$($coverInfo.index)"
-                        "-frames:v"
-                        "1"
-                        "-c:v"
-                        "mjpeg"
-                        "-q:v"
-                        "2"
-                        $coverFile
-                    ) `
-                    -IgnoreErrorPatterns $IgnoreMjpegWarning
+            $metadataResult = Invoke-FFmpeg -Arguments @(
+                "-hide_banner"
+                "-loglevel"
+                "error"
+                "-nostdin"
+                "-y"
+                "-i"
+                $inputFile.FullName
+                "-map_metadata"
+                "0"
+                "-f"
+                "ffmetadata"
+                $tempMetadata
+            ) -IgnoreErrorPatterns $IgnoreMjpegWarning
+
+            if (
+                $metadataResult.ExitCode -ne 0 -or
+                -not (Test-Path -LiteralPath $tempMetadata -PathType Leaf)
+            ) {
+                throw "No se pudieron extraer los metadatos."
+            }
+
+            # =================================================
+            # NORMALIZAR CARATULA
+            # =================================================
+
+            Write-Host "Procesando caratula..." -ForegroundColor Yellow
+
+            $coverResult = Invoke-FFmpeg -Arguments @(
+                "-hide_banner"
+                "-loglevel"
+                "error"
+                "-nostdin"
+                "-y"
+                "-i"
+                $inputFile.FullName
+                "-map"
+                "0:$($coverInfo.index)"
+                "-frames:v"
+                "1"
+                "-c:v"
+                "mjpeg"
+                "-q:v"
+                "2"
+                $tempCover
+            ) -IgnoreErrorPatterns $IgnoreMjpegWarning
 
             if (
                 $coverResult.ExitCode -ne 0 -or
-                -not (
-                    Test-Path `
-                        -LiteralPath $coverFile
-                )
+                -not (Test-Path -LiteralPath $tempCover -PathType Leaf)
             ) {
-
-                throw `
-                    "No se pudo extraer/normalizar la carátula."
+                throw "No se pudo extraer/normalizar la caratula."
             }
 
             # =================================================
-            # 5. OBTENER DIMENSIONES REALES DE LA JPEG LIMPIA
+            # OBTENER DIMENSIONES DE LA CARATULA LIMPIA
             # =================================================
 
-            $normalizedResult =
-                Invoke-NativeProcess `
-                    -FileName "ffprobe.exe" `
-                    -Arguments @(
-                        "-v"
-                        "error"
-                        "-select_streams"
-                        "v:0"
-                        "-show_entries"
-                        "stream=width,height,pix_fmt"
-                        "-of"
-                        "json"
-                        $coverFile
-                    ) `
-                    -IgnoreErrorPatterns $IgnoreMjpegWarning
+            $normalizedResult = Invoke-FFprobe -Arguments @(
+                "-v"
+                "error"
+                "-select_streams"
+                "v:0"
+                "-show_entries"
+                "stream=width,height"
+                "-of"
+                "json"
+                $tempCover
+            )
 
             if ($normalizedResult.ExitCode -ne 0) {
-
-                throw `
-                    "No se pudo analizar la carátula normalizada."
+                throw "No se pudo analizar la caratula normalizada."
             }
 
             try {
-
-                $normalizedInfo =
-                    $normalizedResult.StdOut |
-                    ConvertFrom-Json
+                $normalizedInfo = $normalizedResult.Text | ConvertFrom-Json
             }
             catch {
-
-                throw `
-                    "No se pudo interpretar la información de la carátula."
+                throw "No se pudo interpretar la caratula normalizada."
             }
 
-            $normalizedStreams = @(
-                $normalizedInfo.streams
-            )
+            $normalizedStreams = @($normalizedInfo.streams)
 
             if ($normalizedStreams.Count -eq 0) {
-
-                throw `
-                    "La carátula normalizada no contiene una imagen válida."
+                throw "La caratula normalizada no contiene una imagen valida."
             }
 
-            $normalizedStream =
-                $normalizedStreams[0]
-
-            $coverWidth =
-                [UInt32]$normalizedStream.width
-
-            $coverHeight =
-                [UInt32]$normalizedStream.height
-
-            $mimeType =
-                "image/jpeg"
-
-            $depth =
-                [UInt32]24
-
-            Write-Host `
-                "✅ Carátula normalizada" `
-                -ForegroundColor Green
+            $coverWidth = [UInt32]$normalizedStreams[0].width
+            $coverHeight = [UInt32]$normalizedStreams[0].height
 
             # =================================================
-            # 6. CREAR METADATA_BLOCK_PICTURE
+            # CREAR METADATA_BLOCK_PICTURE
             # =================================================
 
-            Write-Host `
-                "🧩 Creando METADATA_BLOCK_PICTURE..." `
-                -ForegroundColor Yellow
+            Write-Host "Creando METADATA_BLOCK_PICTURE..." -ForegroundColor Yellow
 
-            $pictureBase64 =
-                New-MetadataBlockPicture `
-                    -ImagePath $coverFile `
-                    -MimeType $mimeType `
-                    -Width $coverWidth `
-                    -Height $coverHeight `
-                    -Depth $depth
+            $pictureBase64 = New-MetadataBlockPicture `
+                -ImagePath $tempCover `
+                -MimeType "image/jpeg" `
+                -Width $coverWidth `
+                -Height $coverHeight `
+                -Depth ([UInt32]24)
 
-            # FFMETADATA requiere escapar "="
-            $pictureBase64Escaped =
-                $pictureBase64.Replace(
-                    "=",
-                    "\="
-                )
+            # '=' debe escaparse dentro de FFMETADATA
+            $pictureBase64Escaped = $pictureBase64.Replace("=", "\=")
 
             # =================================================
-            # 7. LEER FFMETADATA COMO UTF-8
+            # MODIFICAR METADATA EN UTF-8
             # =================================================
 
-            $utf8 =
-                New-Object `
-                    System.Text.UTF8Encoding($false)
+            $metadataText = [System.IO.File]::ReadAllText(
+                $tempMetadata,
+                $Utf8NoBom
+            )
 
-            $metadataText =
-                [System.IO.File]::ReadAllText(
-                    $metadataFile,
-                    $utf8
-                )
+            $metadataLines = $metadataText -split "`r?`n"
 
-            $metadataLines =
-                $metadataText -split "`r?`n"
-
-            # Eliminar cualquier picture previo
             $filteredLines = @(
                 $metadataLines |
                     Where-Object {
@@ -1030,52 +713,61 @@ $files | ForEach-Object {
                     }
             )
 
-            # Agregar nuestra portada
-            $filteredLines +=
-                "METADATA_BLOCK_PICTURE=$pictureBase64Escaped"
-
-            # =================================================
-            # ESCRIBIR UTF-8 SIN BOM
-            # =================================================
+            $filteredLines += "METADATA_BLOCK_PICTURE=$pictureBase64Escaped"
 
             [System.IO.File]::WriteAllText(
-                $metadataFile,
-                ($filteredLines -join "`r`n") +
-                    "`r`n",
-                $utf8
+                $tempMetadata,
+                (($filteredLines -join "`r`n") + "`r`n"),
+                $Utf8NoBom
             )
 
-            Write-Host `
-                "✅ Carátula preparada" `
-                -ForegroundColor Green
-        }
-        else {
+            Write-Host "Caratula preparada." -ForegroundColor Green
 
-            Write-Host `
-                "ℹ️ No se encontró carátula embebida." `
-                -ForegroundColor DarkGray
-        }
+            # =================================================
+            # CONVERSION CON CARATULA
+            # =================================================
 
-        # ====================================================
-        # 8. CONVERTIR AUDIO A OPUS
-        # ====================================================
+            if ($audioCodec -eq "opus") {
 
-        Write-Host `
-            "🔄 Convirtiendo audio a Opus $Bitrate..." `
-            -ForegroundColor Cyan
+                Write-Host "Audio ya es Opus: copiando sin recodificar." -ForegroundColor Cyan
 
-        $conversionResult =
-            Invoke-NativeProcess `
-                -FileName "ffmpeg.exe" `
-                -Arguments @(
+                $conversionResult = Invoke-FFmpeg -Arguments @(
                     "-hide_banner"
                     "-loglevel"
                     "error"
+                    "-nostdin"
                     "-y"
                     "-i"
                     $inputFile.FullName
                     "-i"
-                    $metadataFile
+                    $tempMetadata
+                    "-map"
+                    "0:a:0"
+                    "-map_metadata"
+                    "1"
+                    "-map_chapters"
+                    "0"
+                    "-c:a"
+                    "copy"
+                    "-f"
+                    "opus"
+                    $outputName
+                ) -IgnoreErrorPatterns $IgnoreMjpegWarning
+            }
+            else {
+
+                Write-Host "Convirtiendo a Opus $Bitrate..." -ForegroundColor Cyan
+
+                $conversionResult = Invoke-FFmpeg -Arguments @(
+                    "-hide_banner"
+                    "-loglevel"
+                    "error"
+                    "-nostdin"
+                    "-y"
+                    "-i"
+                    $inputFile.FullName
+                    "-i"
+                    $tempMetadata
                     "-map"
                     "0:a:0"
                     "-map_metadata"
@@ -1086,153 +778,200 @@ $files | ForEach-Object {
                     "libopus"
                     "-b:a"
                     $Bitrate
-                    $tempOutput
-                ) `
-                -IgnoreErrorPatterns $IgnoreMjpegWarning
-
-        if (
-            $conversionResult.ExitCode -ne 0 -or
-            -not (
-                Test-Path `
-                    -LiteralPath $tempOutput
-            )
-        ) {
-
-            throw `
-                "Falló la conversión a Opus."
-        }
-
-        # ====================================================
-        # 9. MOVER AL DESTINO FINAL
-        # ====================================================
-
-        Move-Item `
-            -LiteralPath $tempOutput `
-            -Destination $outputName `
-            -Force
-
-        # ====================================================
-        # 10. RESTAURAR FECHAS
-        # ====================================================
-
-        $newFile =
-            Get-Item `
-                -LiteralPath $outputName
-
-        # ----------------------------------------------------
-        # CreationTime
-        # ----------------------------------------------------
-
-        try {
-
-            $newFile.CreationTime =
-                $originalCreation
-
-            Write-Host `
-                "📅 CreationTime: conservada" `
-                -ForegroundColor DarkGreen
-        }
-        catch {
-
-            Write-Host `
-                "⚠️ No se pudo establecer CreationTime. Usando fecha actual." `
-                -ForegroundColor Yellow
-
-            try {
-
-                $newFile.CreationTime =
-                    $fallbackDate
+                    "-f"
+                    "opus"
+                    $outputName
+                ) -IgnoreErrorPatterns $IgnoreMjpegWarning
             }
-            catch {
-
-                Write-Host `
-                    "⚠️ El sistema de archivos no permite establecer CreationTime." `
-                    -ForegroundColor DarkYellow
-            }
-        }
-
-        # ----------------------------------------------------
-        # LastWriteTime
-        # ----------------------------------------------------
-
-        try {
-
-            $newFile.LastWriteTime =
-                $originalWrite
-
-            Write-Host `
-                "📅 LastWriteTime: conservada" `
-                -ForegroundColor DarkGreen
-        }
-        catch {
-
-            Write-Host `
-                "⚠️ No se pudo establecer LastWriteTime. Usando fecha actual." `
-                -ForegroundColor Yellow
-
-            try {
-
-                $newFile.LastWriteTime =
-                    $fallbackDate
-            }
-            catch {
-
-                Write-Host `
-                    "⚠️ El sistema de archivos no permite establecer LastWriteTime." `
-                    -ForegroundColor DarkYellow
-            }
-        }
-
-        # ====================================================
-        # 11. RESULTADO
-        # ====================================================
-
-        Write-Host ""
-        Write-Host `
-            "✅ COMPLETADO: $outputName" `
-            -ForegroundColor Green
-
-        if ($hasCover) {
-
-            Write-Host `
-                "   🖼️ Carátula: OK (normalizada)" `
-                -ForegroundColor Green
         }
         else {
 
-            Write-Host `
-                "   🖼️ Carátula: NO EXISTÍA" `
-                -ForegroundColor DarkGray
+            Write-Host "Sin caratula embebida." -ForegroundColor DarkGray
+
+            # =================================================
+            # SIN CARATULA: COPIA DIRECTA DE METADATOS
+            # =================================================
+
+            if ($audioCodec -eq "opus") {
+
+                Write-Host "Audio ya es Opus: copiando sin recodificar." -ForegroundColor Cyan
+
+                $conversionResult = Invoke-FFmpeg -Arguments @(
+                    "-hide_banner"
+                    "-loglevel"
+                    "error"
+                    "-nostdin"
+                    "-y"
+                    "-i"
+                    $inputFile.FullName
+                    "-map"
+                    "0:a:0"
+                    "-map_metadata"
+                    "0"
+                    "-map_chapters"
+                    "0"
+                    "-c:a"
+                    "copy"
+                    "-f"
+                    "opus"
+                    $outputName
+                ) -IgnoreErrorPatterns $IgnoreMjpegWarning
+            }
+            else {
+
+                Write-Host "Convirtiendo a Opus $Bitrate..." -ForegroundColor Cyan
+
+                $conversionResult = Invoke-FFmpeg -Arguments @(
+                    "-hide_banner"
+                    "-loglevel"
+                    "error"
+                    "-nostdin"
+                    "-y"
+                    "-i"
+                    $inputFile.FullName
+                    "-map"
+                    "0:a:0"
+                    "-map_metadata"
+                    "0"
+                    "-map_chapters"
+                    "0"
+                    "-c:a"
+                    "libopus"
+                    "-b:a"
+                    $Bitrate
+                    "-f"
+                    "opus"
+                    $outputName
+                ) -IgnoreErrorPatterns $IgnoreMjpegWarning
+            }
         }
 
-        Write-Host `
-            "   📋 Metadatos UTF-8: OK" `
-            -ForegroundColor Green
+        # ====================================================
+        # COMPROBAR RESULTADO DE FFMPEG
+        # ====================================================
 
-        Write-Host `
-            "   🎚️ Bitrate: $Bitrate" `
-            -ForegroundColor Green
+        if ($null -eq $conversionResult) {
+            throw "FFmpeg no devolvio ningun resultado."
+        }
+
+        if ($conversionResult.ExitCode -ne 0) {
+
+            $detail = (
+                $conversionResult.AllOutput -join "`r`n"
+            ).Trim()
+
+            if ([string]::IsNullOrWhiteSpace($detail)) {
+                $detail = "FFmpeg termino con codigo $($conversionResult.ExitCode)."
+            }
+
+            throw "FFmpeg fallo: $detail"
+        }
+
+        # ====================================================
+        # VALIDAR OPUS
+        # ====================================================
+
+        Write-Host "Validando OPUS..." -ForegroundColor Yellow
+
+        if (-not (Test-OpusFile $outputName)) {
+            throw "El OPUS generado no paso la validacion."
+        }
+
+        # ====================================================
+        # VALIDAR CARATULA
+        # ====================================================
+
+        if ($hasCover) {
+
+            if (-not (Test-OpusCover $outputName)) {
+                throw "El OPUS fue creado pero no contiene una caratula valida."
+            }
+
+            Write-Host "Caratula: OK" -ForegroundColor Green
+        }
+
+        # ====================================================
+        # RESTAURAR FECHAS
+        # ====================================================
+
+        $newFile = Get-Item `
+            -LiteralPath $outputName `
+            -ErrorAction Stop
+
+        try {
+            $newFile.CreationTime = $originalCreation
+            Write-Host "CreationTime: conservada" -ForegroundColor DarkGreen
+        }
+        catch {
+            Write-Host "No se pudo conservar CreationTime -> usando fecha actual." -ForegroundColor Yellow
+
+            try {
+                $newFile.CreationTime = $fallbackDate
+            }
+            catch {
+            }
+        }
+
+        try {
+            $newFile.LastWriteTime = $originalWrite
+            Write-Host "LastWriteTime: conservada" -ForegroundColor DarkGreen
+        }
+        catch {
+            Write-Host "No se pudo conservar LastWriteTime -> usando fecha actual." -ForegroundColor Yellow
+
+            try {
+                $newFile.LastWriteTime = $fallbackDate
+            }
+            catch {
+            }
+        }
+
+        # ====================================================
+        # RESULTADO
+        # ====================================================
+
+        Write-Host "" 
+        Write-Host "COMPLETADO:" -ForegroundColor Green
+        Write-Host "  $outputName" -ForegroundColor Green
+
+        if ($hasCover) {
+            Write-Host "  Caratula: OK" -ForegroundColor Green
+        }
+        else {
+            Write-Host "  Caratula: no existia" -ForegroundColor DarkGray
+        }
+
+        Write-Host "  Metadatos UTF-8: OK" -ForegroundColor Green
+
+        if ($audioCodec -eq "opus") {
+            Write-Host "  Audio: copia directa (ya era Opus)" -ForegroundColor Green
+        }
+        else {
+            Write-Host "  Audio: Opus $Bitrate" -ForegroundColor Green
+        }
 
         $converted++
     }
     catch {
 
-        Write-Host ""
-        Write-Host `
-            "❌ ERROR: $($inputFile.FullName)" `
-            -ForegroundColor Red
-
-        Write-Host `
-            "   $($_.Exception.Message)" `
-            -ForegroundColor Red
-
         $errors++
 
-        # Eliminar output incompleto
-        if (
-            Test-Path `
-                -LiteralPath $outputName
-        ) {
+        Write-Host "" 
+        Write-Host "ERROR:" -ForegroundColor Red
+        Write-Host "  $($inputFile.FullName)" -ForegroundColor Red
+        Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+
+        $logLine =
+            "[ERROR] $($inputFile.FullName) :: $($_.Exception.Message)"
+
+        [System.IO.File]::AppendAllText(
+            $logFile,
+            $logLine + "`r`n",
+            $Utf8NoBom
+        )
+
+        # Eliminar OPUS incompleto/incorrecto
+        if (Test-Path -LiteralPath $outputName -PathType Leaf) {
 
             Remove-Item `
                 -LiteralPath $outputName `
@@ -1242,23 +981,19 @@ $files | ForEach-Object {
     }
     finally {
 
-        # =================================================
+        # ====================================================
         # LIMPIAR TEMPORALES
-        # =================================================
+        # ====================================================
 
         @(
-            $metadataFile
-            $coverFile
-            $tempOutput
+            $tempMetadata
+            $tempCover
         ) |
         ForEach-Object {
 
             if (
                 $_ -and
-                (
-                    Test-Path `
-                        -LiteralPath $_
-                )
+                (Test-Path -LiteralPath $_)
             ) {
 
                 Remove-Item `
@@ -1271,51 +1006,34 @@ $files | ForEach-Object {
 }
 
 # ============================================================
-# RESUMEN FINAL
+# TERMINAR PROGRESS
+# ============================================================
+
+Write-Progress `
+    -Activity "Convirtiendo a OPUS" `
+    -Completed
+
+# ============================================================
+# RESUMEN
 # ============================================================
 
 Write-Host ""
-Write-Host "==============================================" `
-    -ForegroundColor Cyan
-
-Write-Host `
-    "📊 RESUMEN DE CONVERSIÓN" `
-    -ForegroundColor Cyan
-
-Write-Host "==============================================" `
-    -ForegroundColor Cyan
-
-Write-Host `
-    "📂 Carpeta raíz : $root" `
-    -ForegroundColor White
-
-Write-Host `
-    "🎵 Encontrados  : $totalFiles" `
-    -ForegroundColor White
-
-Write-Host `
-    "✅ Convertidos  : $converted" `
-    -ForegroundColor Green
-
-Write-Host `
-    "⏭️ Saltados     : $skipped" `
-    -ForegroundColor Yellow
-
-Write-Host `
-    "❌ Errores      : $errors" `
-    -ForegroundColor Red
-
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host "PROCESO FINALIZADO" -ForegroundColor Cyan
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host "Carpeta raiz : $root" -ForegroundColor White
+Write-Host "Encontrados  : $totalFiles" -ForegroundColor White
+Write-Host "Convertidos  : $converted" -ForegroundColor Green
+Write-Host "Saltados     : $skipped" -ForegroundColor Yellow
+Write-Host "Errores      : $errors" -ForegroundColor Red
 Write-Host ""
 
 if ($errors -eq 0) {
-
-    Write-Host `
-        "🎉 Proceso finalizado sin errores." `
-        -ForegroundColor Green
+    Write-Host "Todas las conversiones terminaron correctamente." -ForegroundColor Green
 }
 else {
-
-    Write-Host `
-        "⚠️ El proceso terminó con $errors error(es)." `
-        -ForegroundColor Yellow
+    Write-Host "Hay archivos con errores. Revisa:" -ForegroundColor Yellow
+    Write-Host $logFile -ForegroundColor White
 }
+
+Write-Host ""

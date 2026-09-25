@@ -1,19 +1,19 @@
 # ============================================================
 # delete_mp3_from_list.ps1
 #
-# Elimina SOLO los archivos .mp3 indicados en una playlist
+# Elimina archivos .mp3, .wav, .flac, .m4a y .ogg indicados en una playlist
 # M3U/M3U8.
 #
 # Por seguridad:
 # - Lee la playlist como UTF-8
 # - Ignora #EXTM3U / #EXTINF / comentarios
-# - Solo procesa entradas .mp3
-# - Verifica que el .mp3 exista
+# - Solo procesa entradas de audio compatibles
+# - Verifica que el archivo exista
 # - Verifica que exista el .opus correspondiente
-# - Por defecto NO elimina un MP3 si no encuentra su OPUS
+# - Por defecto NO elimina un archivo si no encuentra su OPUS
 # - Genera un log de eliminados, faltantes y protegidos
 # - Soporta rutas con japones, ñ, tildes, etc.
-# - Mantiene intactos .ogg, .m4a, .wav, .flac y otros formatos
+# - Mantiene intactos otros formatos no compatibles
 #
 # USO NORMAL:
 #   .\delete_mp3_from_list.ps1 ".\Asian.m3u8"
@@ -75,11 +75,11 @@ function Test-ValidOpus {
     }
 
     $result = @(& ffprobe.exe `
-        -v error `
-        -select_streams a:0 `
-        -show_entries stream=codec_name,duration `
-        -of json `
-        -- "$FilePath" 2>&1 | ForEach-Object { $_.ToString() })
+            -v error `
+            -select_streams a:0 `
+            -show_entries stream=codec_name, duration `
+            -of json `
+            -- "$FilePath" 2>&1 | ForEach-Object { $_.ToString() })
 
     if ($LASTEXITCODE -ne 0 -or $result.Count -eq 0) {
         return $false
@@ -216,7 +216,7 @@ $whatIfCount = 0
 
 Write-Host ""
 Write-Host "==============================================" -ForegroundColor Cyan
-Write-Host "ELIMINAR MP3 DESDE PLAYLIST" -ForegroundColor Cyan
+Write-Host "ELIMINAR AUDIO DESDE PLAYLIST" -ForegroundColor Cyan
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host "Playlist: $playlistFullPath" -ForegroundColor White
 Write-Host "Entradas: $totalEntries" -ForegroundColor Yellow
@@ -240,7 +240,7 @@ foreach ($entry in $tracks) {
     $current++
 
     Write-Progress `
-        -Activity "Eliminando MP3" `
+        -Activity "Eliminando archivos de audio" `
         -Status "$current / $totalEntries" `
         -PercentComplete ([int](($current / [math]::Max($totalEntries, 1)) * 100))
 
@@ -285,14 +285,14 @@ foreach ($entry in $tracks) {
     }
 
     # ========================================================
-    # SOLO MP3
+    # SOLO FORMATOS DE AUDIO COMPATIBLES
     # ========================================================
 
     $extension = [System.IO.Path]::GetExtension(
         $resolvedSource
     ).ToLowerInvariant()
 
-    if ($extension -ne ".mp3") {
+    if ($extension -ne ".mp3" -and $extension -ne ".wav" -and $extension -ne ".flac" -and $extension -ne ".m4a" -and $extension -ne ".ogg") {
 
         $unsupported++
         continue
@@ -420,7 +420,7 @@ foreach ($entry in $tracks) {
 }
 
 Write-Progress `
-    -Activity "Eliminando MP3" `
+    -Activity "Eliminando archivos de audio" `
     -Completed
 
 # ============================================================
@@ -435,7 +435,7 @@ Write-Host "Entradas de playlist : $totalEntries" -ForegroundColor White
 Write-Host "Eliminados           : $deleted" -ForegroundColor Green
 Write-Host "No encontrados       : $missing" -ForegroundColor Yellow
 Write-Host "Sin OPUS             : $noOpus" -ForegroundColor Yellow
-Write-Host "No MP3               : $unsupported" -ForegroundColor DarkGray
+Write-Host "Formato no compatible: $unsupported" -ForegroundColor DarkGray
 Write-Host "Errores              : $errors" -ForegroundColor Red
 
 if ($WhatIf) {
