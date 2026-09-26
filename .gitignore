@@ -1,2 +1,4 @@
 *.log
 *.m3u8
+.env
+__pycache__
