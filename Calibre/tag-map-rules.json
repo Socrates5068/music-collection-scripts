@@ -1,0 +1,1228 @@
+{
+  "tags": [
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Adult",
+      "replace": "Adulto"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Adult Fiction",
+      "replace": "Ficción para adultos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Adventure",
+      "replace": "Aventura"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Anthologies",
+      "replace": "Antologías"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Art",
+      "replace": "Arte"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Biography",
+      "replace": "Biografía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Biography Memoir",
+      "replace": "Memorias"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Business",
+      "replace": "Negocios"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Chick-lit",
+      "replace": "Chick-lit"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Childrens",
+      "replace": "Infantil"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Classics",
+      "replace": "Clásicos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Comedy",
+      "replace": "Comedia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Comics",
+      "replace": "Cómics y Novelas Gráficas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Contemporary",
+      "replace": "Contemporáneo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Cookbooks",
+      "replace": "Cocina"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Crime",
+      "replace": "Crimen"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Essays",
+      "replace": "Ensayos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Fantasy",
+      "replace": "Fantasía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Feminism",
+      "replace": "Feminismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Gardening",
+      "replace": "Jardinería"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Gay",
+      "replace": "Gay"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Glbt",
+      "replace": "LGBT"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Graphic Novels Comics",
+      "replace": "Cómics y Novelas Gráficas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Health",
+      "replace": "Salud"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Historical Fiction",
+      "replace": "Ficción histórica"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "History",
+      "replace": "Historia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Horror",
+      "replace": "Terror"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Humor",
+      "replace": "Humor"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Inspirational",
+      "replace": "Inspiracional"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Life Sciences",
+      "replace": "Ciencias de la vida"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Manga",
+      "replace": "Manga"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Microbiology",
+      "replace": "Microbiología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Modern",
+      "replace": "Moderno"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Music",
+      "replace": "Música"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Mystery",
+      "replace": "Misterio"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Non Fiction",
+      "replace": "No ficción"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Paranormal",
+      "replace": "Paranormal"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Philosophy",
+      "replace": "Filosofía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Poetry",
+      "replace": "Poesía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Politics",
+      "replace": "Política"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Psychology",
+      "replace": "Psicología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Reference",
+      "replace": "Referencia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Religion",
+      "replace": "Religión"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Romance",
+      "replace": "Romance"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Science",
+      "replace": "Ciencia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Science Fiction",
+      "replace": "Ciencia ficción"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Science Fiction Fantasy",
+      "replace": "Ciencia ficción y fantasía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Self Help",
+      "replace": "Autoayuda"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Sociology",
+      "replace": "Sociología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Spirituality",
+      "replace": "Espiritualidad"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Suspense",
+      "replace": "Suspenso"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Thriller",
+      "replace": "Thriller"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Travel",
+      "replace": "Viajes"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Vampires",
+      "replace": "Vampiros"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "War",
+      "replace": "Guerra"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Young Adult",
+      "replace": "Juvenil"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Dystopian",
+      "replace": "Distópico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Urban Fantasy",
+      "replace": "Fantasía urbana"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Epic Fantasy",
+      "replace": "Fantasía épica"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Dark Fantasy",
+      "replace": "Fantasía oscura"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Military Fiction",
+      "replace": "Ficción militar"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Mythology",
+      "replace": "Mitología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Greek Mythology",
+      "replace": "Mitología griega"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Historical Romance",
+      "replace": "Romance histórico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Urban Fiction",
+      "replace": "Ficción urbana"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Steampunk",
+      "replace": "Steampunk"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Cyberpunk",
+      "replace": "Cyberpunk"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Post-Apocalyptic",
+      "replace": "Postapocalíptico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Light Novel",
+      "replace": "Novela ligera"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Comics & Graphic Novels",
+      "replace": "Cómics y novelas gráficas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Crime & Mystery",
+      "replace": "Crimen y misterio"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Erotica",
+      "replace": "Erótica"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Humorous",
+      "replace": "Humorístico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Media Tie-In",
+      "replace": "Basado en medios"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Religious",
+      "replace": "Religioso"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Customs & Traditions",
+      "replace": "Tradiciones y costumbres"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Latin America",
+      "replace": "América Latina"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "South America",
+      "replace": "América del Sur"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Social Science",
+      "replace": "Ciencias sociales"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Mystery & Detective",
+      "replace": "Misterio y policíaco"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Fiction",
+      "replace": "Ficción"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Historical",
+      "replace": "Histórico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Friendship",
+      "replace": "Amistad"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Japan",
+      "replace": "Japón"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "World Literature",
+      "replace": "Literatura universal"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Astrophysics",
+      "replace": "Astrofísica"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Physics",
+      "replace": "Física"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "General",
+      "replace": "Generalidades"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Body; Mind & Spirit",
+      "replace": "Cuerpo, mente y espíritu"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Inspiration & Personal Growth",
+      "replace": "Inspiración y crecimiento personal"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Motivational & Inspirational",
+      "replace": "Motivación e inspiración"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Native American Studies",
+      "replace": "Estudios indígenas americanos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Personal Growth",
+      "replace": "Crecimiento personal"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Self-Help",
+      "replace": "Autoayuda"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Personal Development",
+      "replace": "Desarrollo personal"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Mind & Spirit",
+      "replace": "Mente y espíritu"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Spiritual Growth",
+      "replace": "Crecimiento espiritual"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Movements",
+      "replace": "Movimientos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Cognitive Psychology & Cognition",
+      "replace": "Psicología cognitiva y cognición"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Application Development",
+      "replace": "Desarrollo de aplicaciones"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Computers",
+      "replace": "Informática"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Internet",
+      "replace": "Internet"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "JavaScript",
+      "replace": "JavaScript"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Languages",
+      "replace": "Lenguajes"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Mathematics",
+      "replace": "Matemáticas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Software Development & Engineering",
+      "replace": "Desarrollo e ingeniería de software"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Computer Science",
+      "replace": "Ciencias de la computación"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "20th Century",
+      "replace": "Siglo XX"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Sea Stories",
+      "replace": "Historias marítimas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Political",
+      "replace": "Política"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Totalitarianism",
+      "replace": "Totalitarismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Surveillance",
+      "replace": "Vigilancia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Social Control",
+      "replace": "Control social"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Economics",
+      "replace": "Economía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Economic Theory",
+      "replace": "Teoría económica"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Capitalism",
+      "replace": "Capitalismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Free Enterprise",
+      "replace": "Libre empresa"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Markets",
+      "replace": "Mercados"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Political Economy",
+      "replace": "Economía política"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Finance",
+      "replace": "Finanzas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Personal Finance",
+      "replace": "Finanzas personales"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Psychological Thrillers",
+      "replace": "Suspenso psicológico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Psychological Fiction",
+      "replace": "Ficción psicológica"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Psychological Suspense",
+      "replace": "Suspenso psicológico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Detective",
+      "replace": "Detectives"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Noir",
+      "replace": "Novela negra"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Czech Literature",
+      "replace": "Literatura checa"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Existentialism",
+      "replace": "Existencialismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Absurdism",
+      "replace": "Absurdismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Absurdist",
+      "replace": "Absurdismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Czech Republic",
+      "replace": "República Checa"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Social Criticism",
+      "replace": "Crítica social"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Literary Fiction",
+      "replace": "Ficción literaria"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "German Literature",
+      "replace": "Literatura alemana"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "European Literature",
+      "replace": "Literatura europea"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Literary Criticism",
+      "replace": "Crítica literaria"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Collected Works",
+      "replace": "Obras completas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "European",
+      "replace": "Europa"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "German",
+      "replace": "Alemania"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Literary Collections",
+      "replace": "Colecciones literarias"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Alienation",
+      "replace": "Alienación"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Identity",
+      "replace": "Identidad"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Family",
+      "replace": "Familia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Transformation",
+      "replace": "Transformación"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Loneliness",
+      "replace": "Soledad"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Russian Literature",
+      "replace": "Literatura rusa"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Individualism",
+      "replace": "Individualismo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Human Nature",
+      "replace": "Naturaleza humana"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Consciousness",
+      "replace": "Conciencia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Russian",
+      "replace": "Rusia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "19th Century",
+      "replace": "Siglo XIX"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Morality",
+      "replace": "Moralidad"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Guilt",
+      "replace": "Culpa"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Justice",
+      "replace": "Justicia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Redemption",
+      "replace": "Redención"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Software Engineering",
+      "replace": "Ingeniería de software"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Programming",
+      "replace": "Programación"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Systems Analysis",
+      "replace": "Análisis de sistemas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Software Architecture",
+      "replace": "Arquitectura de software"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Software Testing",
+      "replace": "Pruebas de software"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Education",
+      "replace": "Educación"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Study Guides",
+      "replace": "Guías de estudio"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Examinations",
+      "replace": "Exámenes"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Ancient & Classical",
+      "replace": "Antigüedad y mundo clásico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Ancient Greece",
+      "replace": "Grecia antigua"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Greek Gods",
+      "replace": "Dioses griegos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Myths & Legends",
+      "replace": "Mitos y leyendas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Mythological Retelling",
+      "replace": "Retelling mitológico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Underworld",
+      "replace": "Inframundo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Geography",
+      "replace": "Geografía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Bolivia",
+      "replace": "Bolivia"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Regional History",
+      "replace": "Historia regional"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Demography",
+      "replace": "Demografía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Culture",
+      "replace": "Cultura"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Monographs",
+      "replace": "Monografías"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Birds",
+      "replace": "Aves"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Ornithology",
+      "replace": "Ornitología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Nature",
+      "replace": "Naturaleza"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Wildlife",
+      "replace": "Fauna silvestre"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Field Guides",
+      "replace": "Guía de campo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Zoology",
+      "replace": "Zoología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Biodiversity",
+      "replace": "Biodiversidad"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Conservation",
+      "replace": "Conservación"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Field Guide",
+      "replace": "Guía de campo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Iconography",
+      "replace": "Iconografía"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Indigenous Peoples",
+      "replace": "Pueblos indígenas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Indigenous Studies",
+      "replace": "Estudios indígenas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Art History",
+      "replace": "Historia del arte"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Cultural Heritage",
+      "replace": "Patrimonio cultural"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Anthropology",
+      "replace": "Antropología"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Andean Studies",
+      "replace": "Estudios andinos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Short Stories",
+      "replace": "Cuentos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Short Stories (single author)",
+      "replace": "Cuentos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Argentine Literature",
+      "replace": "Literatura argentina"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Memory",
+      "replace": "Memoria"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Perception",
+      "replace": "Percepción"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Knowledge",
+      "replace": "Conocimiento"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Argentine",
+      "replace": "Argentina"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Magical Realism",
+      "replace": "Realismo mágico"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Time",
+      "replace": "Tiempo"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Labyrinths",
+      "replace": "Laberintos"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Infinity",
+      "replace": "Infinito"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Alternate Realities",
+      "replace": "Realidades alternativas"
+    },
+    {
+      "action": "replace",
+      "match_type": "one_of",
+      "query": "Metafiction",
+      "replace": "Metaficción"
+    }
+  ]
+}
