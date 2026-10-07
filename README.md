@@ -22,7 +22,7 @@ Este repositorio reúne scripts para convertir y administrar archivos de música
 | [`music/convert_to_opus_from_list.ps1`](music/convert_to_opus_from_list.ps1) | Convierte a partir de una playlist M3U/M3U8. |
 | [`music/delete_mp3_from_list.ps1`](music/delete_mp3_from_list.ps1) | Elimina, con protecciones, los originales enumerados en una playlist. |
 | [`music/delete_music_originals.ps1`](music/delete_music_originals.ps1) | Elimina recursivamente originales que tengan un OPUS válido. |
-| [`music/test_jellyfin_m3u.ps1`](music/test_jellyfin_m3u.ps1) | Importa una playlist M3U a Jellyfin creando otra playlist. |
+| [`music/convert_m3u_to_jellyfin.ps1`](music/convert_m3u_to_jellyfin.ps1) | Importa una playlist M3U a Jellyfin creando otra playlist. |
 | [`music/cover_artist_download.py`](music/cover_artist_download.py) | Busca y descarga una imagen por cada carpeta de artista. |
 | [`Calibre/tag-map-rules.json`](Calibre/tag-map-rules.json) | Reglas de reemplazo de etiquetas en inglés por etiquetas en español. |
 
@@ -96,7 +96,7 @@ La opción `-DeleteWithoutOpus` permite borrar los originales sin comprobar que 
 
 ## Crear una playlist en Jellyfin
 
-[`test_jellyfin_m3u.ps1`](music/test_jellyfin_m3u.ps1) analiza una playlist y crea una **playlist nueva** en Jellyfin, manteniendo el orden del M3U. No modifica la playlist original. Para usarlo:
+[`convert_m3u_to_jellyfin`](music/convert_m3u_to_jellyfin) analiza una playlist y crea una **playlist nueva** en Jellyfin, manteniendo el orden del M3U. No modifica la playlist original. Para usarlo:
 
 1. Edita al principio del script `$M3UFile`, `$JellyfinUrl`, `$PlaylistName` y `$UserId` para que correspondan a tu servidor, usuario y playlist.
 2. Comprueba que las entradas del M3U sean rutas Windows bajo `X:\Music\...`. El script las convierte a rutas Jellyfin con el prefijo `/media/music/`; esa ruta debe corresponder a la configuración de la biblioteca de tu servidor.
@@ -104,7 +104,7 @@ La opción `-DeleteWithoutOpus` permite borrar los originales sin comprobar que 
 
    ```powershell
    Set-Location "C:\ruta\al\repositorio\music"
-   & ".\test_jellyfin_m3u.ps1"
+   & ".\convert_m3u_to_jellyfin.ps1"
    ```
 
 4. Si falta alguna canción en Jellyfin, la importación se cancela y se genera `Asian_import_no_encontrados.txt` en el directorio actual. Corrige las rutas o la biblioteca y vuelve a ejecutarlo.
